@@ -1,4 +1,4 @@
-# sg_audit.py
+# Security Group Audit
 
 A Python tool that audits EC2 Security Groups for overly permissive inbound rules.
 
