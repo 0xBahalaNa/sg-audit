@@ -117,6 +117,10 @@ This script supports FedRAMP 20x compliance-as-code by producing deterministic, 
 
 CJIS v6.0 became the audit standard on April 1, 2026 and aligns with NIST 800-53 Rev 5 as of December 2024. SC-7 falls under **Policy Area 13: System and Communications Protection**, which governs how Criminal Justice Information (CJI) crosses network boundaries. Open security groups on networks handling CJI are a near-immediate audit finding because they undermine the boundary controls that the rest of the policy depends on. A future enhancement to this script will add a `--cjis-mode` flag that demotes any `0.0.0.0/0` rule (risky port or not) to `FAIL` for security groups attached to CJI-tagged ENIs.
 
+## Roadmap
+
+This tool will be consolidated into the **Unified Evidence Collector** (Project 4, Month 7), which aggregates `s3-audit`, `sg-audit`, `cloudtrail-audit`, and `evidence-logger` into a single pipeline producing OSCAL-ready evidence records. The `--cjis-mode` flag noted in *CJIS v6.0 Relevance*, egress (AC-4) coverage, and JSON output feeding [`oscal-evidence-pipeline`](https://github.com/0xBahalaNa/oscal-evidence-pipeline) all land as part of that consolidation.
+
 ## Cleanup
 
 Delete test security groups when done:
