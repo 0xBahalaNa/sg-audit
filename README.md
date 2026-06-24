@@ -122,7 +122,7 @@ This script supports FedRAMP 20x compliance-as-code by producing deterministic, 
 
 ## CJIS v6.0 Relevance
 
-CJIS v6.0 became the audit standard on April 1, 2026 and aligns with NIST 800-53 Rev 5 as of December 2024. SC-7 falls under **Policy Area 13: System and Communications Protection**, which governs how Criminal Justice Information (CJI) crosses network boundaries. Open security groups on networks handling CJI are a near-immediate audit finding because they undermine the boundary controls that the rest of the policy depends on. A future enhancement to this script will add a `--cjis-mode` flag that demotes any `0.0.0.0/0` rule (risky port or not) to `FAIL` for security groups attached to CJI-tagged ENIs.
+CJIS v6.0 (published Dec 27, 2024) aligns to NIST 800-53 Rev 5; default audit baseline from April 1, 2026; Priority 2-4 fully enforceable Oct 1, 2027 (timing varies by state CSA). SC-7 falls under **Policy Area 13: System and Communications Protection**, which governs how Criminal Justice Information (CJI) crosses network boundaries. Open security groups on networks handling CJI are a near-immediate audit finding because they undermine the boundary controls that the rest of the policy depends on. A future enhancement to this script will add a `--cjis-mode` flag that demotes any `0.0.0.0/0` rule (risky port or not) to `FAIL` for security groups attached to CJI-tagged ENIs.
 
 ## Roadmap
 
