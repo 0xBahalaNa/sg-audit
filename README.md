@@ -28,6 +28,26 @@ Two scripts:
 1. **`sg_audit.py`** — Audits security groups for open internet access and risky ports.
 2. **`deploy_test_sgs.py`** — Creates test security groups with various configurations to exercise the audit script.
 
+## Architecture Overview
+
+```mermaid
+flowchart TD
+    CLI["sg_audit.py<br/>CLI entry"] --> EC2["boto3 EC2 client"]
+    EC2 --> LIST["describe_security_groups"]
+    LIST --> PER["Per-SG inbound rules"]
+    PER --> OPEN["Open CIDR check<br/>0.0.0.0/0 ingress"]
+    PER --> PORT["Risky ports<br/>SSH · RDP · DB"]
+    FIX["deploy_test_sgs.py<br/>optional fixtures"] -.-> EC2
+    OPEN --> OUT["Console summary evidence<br/>PASS / FAIL findings"]
+    PORT --> OUT
+    OUT --> HUM["Auditors / assessors"]
+    OUT --> PIPE["Future CSV/JSON<br/>evidence-logger · OSCAL"]
+```
+
+Editable Mermaid source (kept in sync with the fence above): [`docs/architecture.mmd`](docs/architecture.mmd).
+
+`sg_audit.py` enumerates security groups and flags open-internet ingress (`0.0.0.0/0`) plus risky management ports (SC-7 / CM-7). Findings land in a console summary for assessors today; CSV/JSON export is the planned handoff into evidence-logger / OSCAL. `deploy_test_sgs.py` is an optional fixture path for local exercise.
+
 ## Requirements
 
 - Python 3.x
