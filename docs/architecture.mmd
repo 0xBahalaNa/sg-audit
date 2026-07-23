@@ -1,0 +1,14 @@
+%% Editable Mermaid source for the README "Architecture Overview" section.
+%% Keep this file in sync with the inline ```mermaid fence in README.md.
+%% Diff-able source of truth for the architecture graph (no separate PNG export).
+flowchart TD
+    CLI["sg_audit.py<br/>CLI entry"] --> EC2["boto3 EC2 client"]
+    EC2 --> LIST["describe_security_groups"]
+    LIST --> PER["Per-SG inbound rules"]
+    PER --> OPEN["Open CIDR check<br/>0.0.0.0/0 ingress"]
+    PER --> PORT["Risky ports<br/>SSH · RDP · DB"]
+    FIX["deploy_test_sgs.py<br/>optional fixtures"] -.-> EC2
+    OPEN --> OUT["Console summary evidence<br/>PASS / FAIL findings"]
+    PORT --> OUT
+    OUT --> HUM["Auditors / assessors"]
+    OUT --> PIPE["Future CSV/JSON<br/>evidence-logger · OSCAL"]
