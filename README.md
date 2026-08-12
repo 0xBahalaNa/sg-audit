@@ -7,26 +7,33 @@
 
 # Security Group Audit
 
-A Python tool that audits EC2 Security Groups for overly permissive inbound rules and risky management ports. Built for GRC engineers, compliance analysts, and assessors working in FedRAMP High and CJIS v6.0 environments where exposed boundary controls represent immediate audit findings.
+I wrote this to walk an AWS account's EC2 security groups and print which inbound
+rules still open to `0.0.0.0/0`, with a harder FAIL when that open range hits a
+management or database port. Six ports are treated as critical today: 22, 3389,
+3306, 5432, 1433, 27017. Everything else open to the internet is a WARN, because
+a public 443 on a web tier is often intentional.
+
+It does not look at egress. It does not check IPv6 `::/0`. Output is console text
+only; CSV and JSON are still on the list below.
 
 ## Compliance Controls Addressed
 
 | NIST 800-53 Rev 5 | FedRAMP High | CJIS v6.0 | Validation Method |
 |--------------------|:------------:|:---------:|-------------------|
 | SC-7 Boundary Protection | Yes | Policy Area 13 | Detects `0.0.0.0/0` ingress on any inbound rule |
-| SC-7(3) Access Points | Yes | — | Limits attack surface by enumerating risky ports |
-| SC-7(4) External Telecommunications Services | Yes | — | Enforces cloud network boundary at security-group layer |
-| AC-3 Access Enforcement | Yes | — | Network-layer access control at the SG |
-| AC-4 Information Flow Enforcement | Yes | — | Ingress flow control (egress on roadmap) |
-| CM-7 Least Functionality | Yes | — | Flags risky management ports (SSH, RDP, DB ports) |
-| AU-12 Audit Record Generation | Yes | — | Every audit run produces compliance evidence |
+| SC-7(3) Access Points | Yes | - | Limits attack surface by enumerating risky ports |
+| SC-7(4) External Telecommunications Services | Yes | - | Enforces cloud network boundary at security-group layer |
+| AC-3 Access Enforcement | Yes | - | Network-layer access control at the SG |
+| AC-4 Information Flow Enforcement | Yes | - | Ingress flow control (egress on roadmap) |
+| CM-7 Least Functionality | Yes | - | Flags risky management ports (SSH, RDP, DB ports) |
+| AU-12 Audit Record Generation | Yes | - | Every audit run produces compliance evidence |
 
 ## Overview
 
 Two scripts:
 
-1. **`sg_audit.py`** — Audits security groups for open internet access and risky ports.
-2. **`deploy_test_sgs.py`** — Creates test security groups with various configurations to exercise the audit script.
+1. **`sg_audit.py`** - Audits security groups for open internet access and risky ports.
+2. **`deploy_test_sgs.py`** - Creates test security groups with various configurations to exercise the audit script.
 
 ## Architecture Overview
 
@@ -46,7 +53,10 @@ flowchart TD
 
 Editable Mermaid source (kept in sync with the fence above): [`docs/architecture.mmd`](docs/architecture.mmd).
 
-`sg_audit.py` enumerates security groups and flags open-internet ingress (`0.0.0.0/0`) plus risky management ports (SC-7 / CM-7). Findings land in a console summary for assessors today; CSV/JSON export is the planned handoff into evidence-logger / OSCAL. `deploy_test_sgs.py` is an optional fixture path for local exercise.
+`sg_audit.py` calls `describe_security_groups`, walks each inbound permission, and
+flags `0.0.0.0/0` with FAIL or WARN depending on the port. `deploy_test_sgs.py`
+builds four fixture groups so you can see both severities without hunting a live
+misconfiguration.
 
 ## Requirements
 
@@ -134,19 +144,39 @@ Flags critical findings if these management / database ports are open to the int
 
 ## How an Auditor Uses This Output
 
-An assessor reviewing a FedRAMP High or CJIS v6.0 authorization package can use this script across the in-scope account to verify SC-7 (Boundary Protection) and CM-7 (Least Functionality) implementation. `FAIL` findings on risky ports map directly to the assessor's adequacy determination as control deficiencies; `WARN` findings on non-risky ports surface design questions ("why is this open?") that the system owner must justify. Combined with `cloudtrail-audit` (event monitoring) and `evidence-logger` (timestamped evidence packaging), the SG audit completes the network-boundary picture the assessor needs for an SC-7 walkthrough.
+I run this against the in-scope account before an SC-7 walkthrough and keep the
+console summary as the working list. Each FAIL is a concrete group ID, port, and
+open CIDR the assessor can ask the system owner to justify or close. WARNs stay
+on the list because "we meant to expose 443" still needs a sentence in the
+narrative. Pair it with `cloudtrail-audit` if you also need who changed the group,
+and with `evidence-logger` if you want a timestamped file instead of a scrollback
+buffer.
 
 ## FedRAMP 20x Alignment
 
-This script supports FedRAMP 20x compliance-as-code by producing deterministic, automatable, and re-runnable boundary-control validation output. The findings can be transformed into OSCAL Assessment Results entries for machine-readable compliance reporting, and the SG state at run time becomes a KSI metric data point for continuous monitoring. Future iterations will emit JSON output (see Future Enhancements) to feed compliance-trestle and OSCAL pipelines directly.
+Today the script prints text. That is enough to re-run the same check on a fixed
+schedule and compare counts run to run. I have not wired OSCAL Assessment Results
+or a KSI feed yet; the path I want is JSON findings that
+[`oscal-evidence-pipeline`](https://github.com/0xBahalaNa/oscal-evidence-pipeline)
+can ingest without a hand rewrite. Until that lands, this is a repeatable boundary
+check, not a continuous-monitoring metric source.
 
 ## CJIS v6.0 Relevance
 
-CJIS v6.0 (published Dec 27, 2024) aligns to NIST 800-53 Rev 5; default audit baseline from April 1, 2026; Priority 2-4 fully enforceable Oct 1, 2027 (timing varies by state CSA). SC-7 falls under **Policy Area 13: System and Communications Protection**, which governs how Criminal Justice Information (CJI) crosses network boundaries. Open security groups on networks handling CJI are a near-immediate audit finding because they undermine the boundary controls that the rest of the policy depends on. A future enhancement to this script will add a `--cjis-mode` flag that demotes any `0.0.0.0/0` rule (risky port or not) to `FAIL` for security groups attached to CJI-tagged ENIs.
+CJIS Security Policy v6.0 (Dec 27, 2024) maps SC-7 into Policy Area 13. Default
+audit baseline from April 1, 2026; Priority 2-4 fully enforceable Oct 1, 2027
+(timing varies by state CSA). On a CJI network, any `0.0.0.0/0` inbound rule is
+the kind of finding that shows up early in a boundary review. I still treat
+non-risky open ports as WARN in the default mode. A planned `--cjis-mode` flag
+would force FAIL on every open-internet ingress when the group is attached to a
+CJI-tagged ENI.
 
 ## Roadmap
 
-This tool will be consolidated into the **Unified Evidence Collector** (Project 4, Month 7), which aggregates `s3-audit`, `sg-audit`, `cloudtrail-audit`, and `evidence-logger` into a single pipeline producing OSCAL-ready evidence records. The `--cjis-mode` flag noted in *CJIS v6.0 Relevance*, egress (AC-4) coverage, and JSON output feeding [`oscal-evidence-pipeline`](https://github.com/0xBahalaNa/oscal-evidence-pipeline) all land as part of that consolidation.
+Consolidation target is the Unified Evidence Collector (Project 4), alongside
+`s3-audit`, `cloudtrail-audit`, and `evidence-logger`. Before that merge I want
+`--cjis-mode`, egress coverage for AC-4, IPv6 `::/0` checks, and JSON export into
+[`oscal-evidence-pipeline`](https://github.com/0xBahalaNa/oscal-evidence-pipeline).
 
 ## Cleanup
 
@@ -163,7 +193,7 @@ aws ec2 delete-security-group --group-name test-secure
 
 - Export results to CSV / JSON for downstream OSCAL pipelines
 - Check IPv6 ranges (`::/0`)
-- Audit egress (outbound) rules — AC-4 information flow
+- Audit egress (outbound) rules for AC-4 information flow
 - Filter by VPC or tags (in-scope CJI vs general-purpose)
 - `--cjis-mode` flag for stricter findings on CJI-tagged resources
 - Auto-remediation hooks (revoke risky ingress)
