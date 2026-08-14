@@ -3,7 +3,7 @@
 ![AWS](https://img.shields.io/badge/AWS-EC2-FF9900?style=flat&logo=amazonwebservices)
 ![NIST 800-53](https://img.shields.io/badge/NIST-800--53%20Rev%205-004990?style=flat)
 ![FedRAMP](https://img.shields.io/badge/FedRAMP-High%20Baseline-0071bc?style=flat)
-![CJIS](https://img.shields.io/badge/CJIS-Security%20Policy%20v6.0-cc0000?style=flat)
+![CJIS](https://img.shields.io/badge/CJIS-Security%20Policy%20v6.1-cc0000?style=flat)
 
 # Security Group Audit
 
@@ -18,9 +18,9 @@ only; CSV and JSON are still on the list below.
 
 ## Compliance Controls Addressed
 
-| NIST 800-53 Rev 5 | FedRAMP High | CJIS v6.0 | Validation Method |
+| NIST 800-53 Rev 5 | FedRAMP High | CJIS v6.1 | Validation Method |
 |--------------------|:------------:|:---------:|-------------------|
-| SC-7 Boundary Protection | Yes | Policy Area 13 | Detects `0.0.0.0/0` ingress on any inbound rule |
+| SC-7 Boundary Protection | Yes | P1 | Detects `0.0.0.0/0` ingress on any inbound rule |
 | SC-7(3) Access Points | Yes | - | Limits attack surface by enumerating risky ports |
 | SC-7(4) External Telecommunications Services | Yes | - | Enforces cloud network boundary at security-group layer |
 | AC-3 Access Enforcement | Yes | - | Network-layer access control at the SG |
@@ -161,11 +161,9 @@ or a KSI feed yet; the path I want is JSON findings that
 can ingest without a hand rewrite. Until that lands, this is a repeatable boundary
 check, not a continuous-monitoring metric source.
 
-## CJIS v6.0 Relevance
+## CJIS v6.1 Relevance
 
-CJIS Security Policy v6.0 (Dec 27, 2024) maps SC-7 into Policy Area 13. Default
-audit baseline from April 1, 2026; Priority 2-4 fully enforceable Oct 1, 2027
-(timing varies by state CSA). On a CJI network, any `0.0.0.0/0` inbound rule is
+CJIS Security Policy v6.1 (released June 25, 2026) is the current policy, aligned with NIST 800-53 Rev 5. v6.x has been the default audit baseline since April 1, 2026 (v5.9.5 sunset March 31, 2026); modernized Priority 2-4 controls are fully enforceable Oct 1, 2027 (timing varies by state CSA). CJIS carries SC-7 (Boundary Protection) as a Priority 1 control. On a CJI network, any `0.0.0.0/0` inbound rule is
 the kind of finding that shows up early in a boundary review. I still treat
 non-risky open ports as WARN in the default mode. A planned `--cjis-mode` flag
 would force FAIL on every open-internet ingress when the group is attached to a
