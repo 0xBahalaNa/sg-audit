@@ -1,0 +1,4 @@
+# Python bytecode and caches
+# Generated on import; machine-specific, never useful in the repo.
+__pycache__/
+*.pyc
